@@ -1,1 +1,4 @@
 .idea
+/build/web
+/build/web-cache
+/build/version.txt

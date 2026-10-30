@@ -1,12 +1,11 @@
 # -- IMPORT --
-import ctypes #importer ctypes
+import asyncio
 import pygame # importer pygame
 from pygame import Vector2, Surface # importer les classes utilisées régulièrement de pygame
 from camera import camera, move_camera # importer les variable de caméra
 from player_units import add_player_unit, draw_player_units # importer les fonctions d'unités
 from player_units import draw_selection_area, get_units_in_selection # importer les fonctions de séléction
 
-ctypes.OleDLL("shcore").SetProcessDpiAwareness(1)
 pygame.init() # initialisé toute les fonctionnalité de pygame
 
 
@@ -28,40 +27,50 @@ add_player_unit(Vector2(123, 87), (32, 32), unit_sprite)
 add_player_unit(Vector2(200, 87), (32, 32), unit_sprite)
 
 
-# -- DEBUTS DE LA BOUCLE DE JEU --
-is_running = True # défini si le jeu est actuellement en train de tourner
-while is_running:
-    key_state: pygame.key.ScancodeWrapper = pygame.key.get_pressed()  # récupérer toutes les touches pressées
+# -- LA BOUCLE DE JEU --
+async def main():
+    global selection_started, selection_start_pos, selection_end_pos
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: # détecter si le joueur ferme la fenêtre de jeu
-            is_running = False
-        if event.type == pygame.KEYDOWN: # détecter si le joueur appuie sur une touche du clavier
-            if event.key == pygame.K_ESCAPE: # détecter un clique sur la touche échap du clavier
+    is_running = True  # défini si le jeu est actuellement en train de tourner
+    while is_running:
+        key_state: pygame.key.ScancodeWrapper = pygame.key.get_pressed()  # récupérer toutes les touches pressées
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:  # détecter si le joueur ferme la fenêtre de jeu
                 is_running = False
-        if event.type == pygame.MOUSEBUTTONDOWN: # détecter un clique de la souris
-            if event.button == 1:
-                selection_start_pos = (pygame.mouse.get_pos()[0] - camera.x, pygame.mouse.get_pos()[1] - camera.y)
-                selection_started = True
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                selection_end_pos = (pygame.mouse.get_pos()[0] - camera.x, pygame.mouse.get_pos()[1] - camera.y)
-                selection_started = False
+            if event.type == pygame.KEYDOWN:  # détecter si le joueur appuie sur une touche du clavier
+                if event.key == pygame.K_ESCAPE:  # détecter un clique sur la touche échap du clavier
+                    is_running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:  # détecter un clique de la souris
+                if event.button == 1:
+                    selection_start_pos = (pygame.mouse.get_pos()[0] - camera.x, pygame.mouse.get_pos()[1] - camera.y)
+                    selection_started = True
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    selection_end_pos = (pygame.mouse.get_pos()[0] - camera.x, pygame.mouse.get_pos()[1] - camera.y)
+                    selection_started = False
 
-                get_units_in_selection(selection_start_pos, selection_end_pos, key_state)
+                    get_units_in_selection(selection_start_pos, selection_end_pos, key_state)
 
-    delta: float = CLOCK.tick(60) / 1000 # bloquer la vitesse du jeu à 60 image par seconde et récupérer delta
+        await asyncio.sleep(0)
 
-    move_camera(key_state, delta) # déplacer la caméra en fonction des touches pressées
+        delta: float = CLOCK.tick(60) / 1000  # bloquer la vitesse du jeu à 60 image par seconde et récupérer delta
 
-    SCREEN.fill(BACKGROUND_COLOR) # remplir l'arrière-plan avec la couleur de BACKGROUND_COLOR
-    draw_player_units(SCREEN, camera) # déssiner les unités du joueur sur la fenêtre de jeu
+        move_camera(key_state, delta)  # déplacer la caméra en fonction des touches pressées
 
-    if selection_started:
-        selection_actual_pos: tuple[float, float] = (pygame.mouse.get_pos()[0] - camera.x, pygame.mouse.get_pos()[1] - camera.y)
+        SCREEN.fill(BACKGROUND_COLOR)  # remplir l'arrière-plan avec la couleur de BACKGROUND_COLOR
+        draw_player_units(SCREEN, camera)  # déssiner les unités du joueur sur la fenêtre de jeu
 
-        draw_selection_area(SCREEN, camera, selection_start_pos, selection_actual_pos)
+        if selection_started:
+            selection_actual_pos: tuple[float, float] = (pygame.mouse.get_pos()[0] - camera.x,
+                                                         pygame.mouse.get_pos()[1] - camera.y)
 
-    pygame.display.flip() # mettre à jour l'affichage
+            draw_selection_area(SCREEN, camera, selection_start_pos, selection_actual_pos)
 
-pygame.quit()
+        pygame.display.flip()  # mettre à jour l'affichage
+
+    pygame.quit()
+
+
+# -- DEBUT DE LA BOUCLE DE JEU --
+asyncio.run(main())
